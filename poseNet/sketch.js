@@ -1,7 +1,7 @@
 let video;
 let poseNet;
 let people = [];
-const personConfidence = 5;
+const personConfidence = 0;
 
 function setup() {
   createCanvas(640, 480);
