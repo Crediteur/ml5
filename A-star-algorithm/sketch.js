@@ -1,6 +1,8 @@
 const gridSize = 800;
-const cols = 125;
-const rows = 125;
+const cols = 40;
+const rows = 40;
+const diagonals = false;
+const wallDensity = 0.25;
 let grid = [...Array(cols)].map(() => Array(rows).fill(0));
 let openSet = [];
 let closedSet = [];
@@ -19,7 +21,7 @@ class Spot {
     this.neighbours = [];
     this.previous = undefined;
     this.wall = false;
-    if (random(1) < 0.2) {
+    if (random(1) < wallDensity) {
       this.wall = true;
     }
   }
@@ -27,7 +29,7 @@ class Spot {
   show(col) {
     fill(col);
     if (this.wall) fill(20);
-    strokeWeight(1);
+    strokeWeight(0);
     width = gridSize / cols;
     height = gridSize / rows;
     rect(this.x * width, this.y * height, width, height);
@@ -37,6 +39,7 @@ class Spot {
     // find neighbours of a node based on grid
     const i = this.x;
     const j = this.y;
+    // adjacent neighbours
     if (i < cols - 1 && !grid[i + 1][j].wall) {
       this.neighbours.push(grid[i + 1][j]);
     }
@@ -48,6 +51,21 @@ class Spot {
     }
     if (j > 0 && !grid[i][j - 1].wall) {
       this.neighbours.push(grid[i][j - 1]);
+    }
+    if (diagonals) {
+      // diagonal neighbours
+      if (i > 0 && j > 0 && !grid[i - 1][j - 1].wall) {
+        this.neighbours.push(grid[i - 1][j - 1]);
+      }
+      if (i < cols - 1 && j > 0 && !grid[i + 1][j - 1].wall) {
+        this.neighbours.push(grid[i + 1][j - 1]);
+      }
+      if (i < cols - 1 && j < rows - 1 && !grid[i + 1][j + 1].wall) {
+        this.neighbours.push(grid[i + 1][j + 1]);
+      }
+      if (i > 0 && j < rows - 1 && !grid[i - 1][j + 1].wall) {
+        this.neighbours.push(grid[i - 1][j + 1]);
+      }
     }
   }
 }
@@ -62,12 +80,6 @@ function setup() {
       grid[i][j].show(color(183, 193, 240));
     }
   }
-  // populate neighbours
-  for (let i = 0; i < cols; i++) {
-    for (let j = 0; j < rows; j++) {
-      grid[i][j].addNeighbours(grid);
-    }
-  }
   console.log("A*", grid);
 
   //initialize start and goal nodes
@@ -75,6 +87,15 @@ function setup() {
   pathEnd = grid[cols - 1][rows - 1];
   pathStart.wall = false;
   pathEnd.wall = false;
+  pathStart.show(color(123, 20, 123));
+  pathEnd.show(color(123, 20, 123));
+
+  // populate neighbours
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      grid[i][j].addNeighbours(grid);
+    }
+  }
 
   // initalize algo by push
   openSet.push(pathStart);
@@ -115,22 +136,25 @@ function draw() {
       // calculate gScore based on distance from current node
       // update gScore if it is lower than an existing score
       // the 1 should be distance from current to neighbour
-      let tempG = current.g + 1;
+      let tempG = current.g + heuristic(current, neighbour);
+      //console.log(tempG);
       if (tempG < neighbour.g) {
         neighbour.g = tempG;
+        // update heuristic score
+        neighbour.h = heuristic(neighbour, pathEnd);
+        neighbour.f = neighbour.g + neighbour.h;
+        neighbour.previous = current;
       }
       // add neighbour to openSet if not in
       if (!openSet.includes(neighbour)) {
+        neighbour.h = heuristic(neighbour, pathEnd);
+        neighbour.f = neighbour.g + neighbour.h;
+        neighbour.previous = current;
         openSet.push(neighbour);
       }
-
-      // update heuristic score
-      neighbour.h = heuristic(neighbour, pathEnd);
-      neighbour.f = neighbour.g + neighbour.h;
-      neighbour.previous = current;
     }
 
-    //draw the path through backtrack
+    //draw the path through backtracking
     path = [];
     let node = current;
     path.push(node);
@@ -149,6 +173,9 @@ function draw() {
     for (let i = 0; i < path.length; i++) {
       path[i].show(color(14, 3, 214));
     }
+  } else {
+    noLoop();
+    console.log("No Solution");
   }
 }
 
